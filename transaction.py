@@ -1,9 +1,11 @@
 #transction.py
+
 from hex_generator import HexGenerator
 from random import randint
 import requests
 import time
 from blockchain import Blockchain
+
 
 class Transaction:
     def __init__(self, from_address , to_address, value, gas_limit, max_fee, priority_fee, gas_used, input_data):
@@ -17,20 +19,31 @@ class Transaction:
         self.__input_data = input_data
         self.__hash = HexGenerator().generate_hash()
 
-        self.__base_fee = randint(1,20_000_000_000_000_000)
-        validator_wanted_priority_fee = randint(1,10_000_000_000_000_000)
+        self.__base_fee = randint(1,200_000_000_000)
+        validator_wanted_priority_fee = randint(1,10_000_000_000)
 
-        if priority_fee < max_fee:
-            if gas_used <= gas_limit:
-                if self.__base_fee <= self.__max_fee and validator_wanted_priority_fee <= self.__priority_fee :
-                    self.__status = 'Confirmed'
+        self.__gas_price = self.__base_fee + self.__priority_fee
+        self.__eth_burnt = self.__base_fee
+        self.__transaction_fee = self.__gas_used * self.__gas_price
+
+        blockchain = Blockchain()
+        from_address_instance = blockchain.get_address_by_address(from_address)
+        to_address_instance = blockchain.get_address_by_address(to_address)
+
+
+        if value + self.__transaction_fee <= from_address_instance.eth_balance:
+            if priority_fee < max_fee:
+                if gas_used <= gas_limit:
+                    if self.__base_fee <= self.__max_fee and validator_wanted_priority_fee <= self.__priority_fee :
+                        self.__status = 'Confirmed'
+                    else:
+                        self.__status = 'Rejected'
                 else:
                     self.__status = 'Rejected'
             else:
                 self.__status = 'Rejected'
         else:
             self.__status = 'Rejected'
-
         self.__eth_price = randint(1, 10000)
         # response = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
         # self.__eth_price = response.json()["ethereum"]["usd"]
@@ -38,7 +51,6 @@ class Transaction:
 
         self.__timestamp = time.time()
 
-        blockchain = Blockchain()
 
         if self.__status == 'Confirmed':
             address = blockchain.get_address_by_address(self.__from_address)
@@ -47,11 +59,11 @@ class Transaction:
         else:
             self.__nonce = None
 
-        self.__gas_fee = self.__base_fee + self.__priority_fee
 
-        self.__eth_burnt = self.__base_fee
-
-        self.__transaction_fee = self.__gas_used * self.__gas_fee
+        if self.__status == 'Confirmed':
+            if to_address_instance is not None:
+                to_address_instance.eth_balance += value
+            from_address_instance.eth_balance -= (value + self.__transaction_fee)
 
         blockchain.add_transaction(self)
 
@@ -112,8 +124,8 @@ class Transaction:
         return self.__nonce
 
     @property
-    def gas_fee(self):
-        return self.__gas_fee
+    def gas_price(self):
+        return self.__gas_price
 
     @property
     def eth_burnt(self):

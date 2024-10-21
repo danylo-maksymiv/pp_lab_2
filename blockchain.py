@@ -44,7 +44,7 @@ class Blockchain:
                 Eth price : {txn.eth_price}\n
                 Status : {txn.status}\n
                 Transaction fee : {txn.transaction_fee}\n
-                Gas fee : {txn.gas_fee}\n
+                Gas fee : {txn.gas_price}\n
                 Gas limit : {txn.gas_limit}\n
                 Gas used : {txn.gas_used}\n
                 Max fee : {txn.max_fee}\n
@@ -62,7 +62,7 @@ class Blockchain:
                 ETH balance : {adr.eth_balance / int(1e18)}\n
                 ''')
             for ca,balance in adr.token_balance.items():
-                print(f'{self.get_contract_by_address(ca).symbol} : ${balance} {"" if adr.token_balance[ca][1] is None else adr.token_balance[ca][1]}')
+                print(f'''{self.get_contract_by_address(ca).symbol} : ${balance} ''')
 
     def show_contracts(self):
         for ca in self.__contracts.values():

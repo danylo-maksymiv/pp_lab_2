@@ -30,6 +30,8 @@ class Erc721(Token):
                 from_address_instance = blockchain.get_address_by_address(from_address)
                 from_address_instance.set_token_balance(self.contract_address, len(minted_ids), minted_ids)
 
+                # from_address_instance.eth_balance -= (value + transaction.transaction_fee)
+
 
             else:
                 print(f'Can\'t mint token, user may have not enough ether on balance. Transaction hash: {transaction.hash}.')
@@ -47,33 +49,27 @@ class Erc721(Token):
         from_address_instance = blockchain.get_address_by_address(from_address)
         to_address_instance = blockchain.get_address_by_address(to_address)
 
-        has_tokens = True
-        for id_ in ids:
-            if id_ not in from_address_instance.token_balance[self.contract_address][1]:
-                has_tokens = False
-                break
+        if to_address is not None:
+            has_tokens = all(id_ in from_address_instance.token_balance.get(self.contract_address, [0, []])[1] for id_ in ids)
 
-        if amount == len(ids):
-            if has_tokens:
-                from transaction import Transaction
-                transaction = Transaction(from_address, self.contract_address, 0, gas_limit, max_fee, priority_fee, 21000 * len(ids),f'{self.contract_address} transfer {ids} to {to_address_instance.address}')
+            if amount == len(ids):
+                if has_tokens:
+                    from transaction import Transaction
+                    transaction = Transaction(from_address, self.contract_address, 0, gas_limit, max_fee, priority_fee, 21000 * len(ids),f'{self.contract_address} transfer {ids} to {to_address_instance.address}')
 
-                if transaction.status == 'Confirmed':
-                    print(f'Successfully transferred {ids} tokens to {to_address_instance.address}! Transaction hash: {transaction.hash}.')
-                    tokens_from = []
-                    tokens_to = []
-                    for id_ in ids:
-                        tokens_to.append(id_)
-                    for id_ in ids:
-                        tokens_from.remove(id_)
+                    if transaction.status == 'Confirmed':
+                        print(f'Successfully transferred {ids} tokens to {to_address_instance.address}! Transaction hash: {transaction.hash}.')
+                        from_address_instance.set_token_balance(self.contract_address, -amount, ids)
+                        to_address_instance.set_token_balance(self.contract_address, amount, ids)
 
-                    from_address_instance.set_token_balance(self.contract_address, -amount, tokens_from)
-                    to_address_instance.set_token_balance(self.contract_address, amount, tokens_to)
+                        # from_address_instance.eth_balance -= (value + transaction.transaction_fee)
+
+                    else:
+                        print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user may have not enough ether on balance. Transaction hash: {transaction.hash}.')
 
                 else:
-                    print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user may have not enough ether on balance. Transaction hash: {transaction.hash}.')
-
+                    print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user have not enough tokens on balance.')
             else:
-                print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user have not enough tokens on balance.')
+                print('Amount of tokens does not match with count of ids.')
         else:
-            print('Amount of tokens does not match with count of ids.')
+            print('Receiver doesn\'t exist.')

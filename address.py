@@ -42,8 +42,14 @@ class Address:
         if isinstance(chain.get_contract_by_address(contract_address), Erc721):
             if contract_address not in self.__token_balance.keys():
                 self.__token_balance[contract_address] = [0, []]
-            self.__token_balance[contract_address][1] = ids
-            self.__token_balance[contract_address][0] += amount
+            if amount > 0:
+                self.__token_balance[contract_address][1].extend(ids)
+                self.__token_balance[contract_address][0] += amount
+            else:
+                for id_ in ids:
+                    if id_ in self.__token_balance[contract_address][1]:
+                        self.__token_balance[contract_address][1].remove(id_)
+                self.__token_balance[contract_address][0] += amount
         elif isinstance(chain.get_contract_by_address(contract_address), Erc20):
             if contract_address not in self.__token_balance.keys():
                 self.__token_balance[contract_address] = [0, None]
@@ -85,8 +91,8 @@ class Address:
             transaction = Transaction(self.__address, to_address, value, gas_limit, max_fee, priority_fee, 21000, input_data)
             if transaction.status == 'Confirmed':
                 print(f'Successfully transferred {value} $ETH to {to_address_instance.address}! Transaction hash: {transaction.hash}.')
-                self.__eth_balance -= (value + transaction.gas_fee)
-                to_address_instance.eth_balance += value
+                # self.__eth_balance -= (value + transaction.transaction_fee)
+                # to_address_instance.eth_balance += value
             else:
                 print(f'Transaction was rejected, try to add more gas! Transaction hash: {transaction.hash}')
         else:

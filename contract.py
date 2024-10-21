@@ -24,7 +24,7 @@ class Contract:
             chain = Blockchain()
             chain.add_contract(self)
             address = chain.get_address_by_address(self.__creator_address)
-            address.eth_balance = address.eth_balance - transaction.gas_fee
+            address.eth_balance = address.eth_balance - transaction.transaction_fee
         else:
             print(f'Can\'t deploy contract, user may have not enough ether on balance. Transaction hash: {transaction.hash}')
             self.__contract_address = None
@@ -63,14 +63,14 @@ class Contract:
                 method = getattr(self, function_name)
                 method(from_address, value, gas_limit, max_fee, priority_fee, *args, **kwargs)
             else:
-                gas_used = randint(1, 100_000)
+                gas_used = randint(21000, 100_000)
                 transaction = Transaction(from_address, self.contract_address, value, gas_limit, max_fee, priority_fee, gas_used, str(function_name) + '\n' + str(args) + '\n' + str(kwargs))
 
                 if transaction.status == "Confirmed":
                     print(f'Successfully confirmed transaction! Transaction hash: {transaction.hash}')
-                    chain = Blockchain()
-                    address = chain.get_address_by_address(self.__creator_address)
-                    address.eth_balance = address.eth_balance - transaction.gas_fee - transaction.value
+                    # chain = Blockchain()
+                    # address = chain.get_address_by_address(from_address)
+                    # address.eth_balance = address.eth_balance - transaction.transaction_fee - transaction.value
                 else:
                     print(f'Transaction was rejected, try to add more gas! Transaction hash: {transaction.hash}')
         else:

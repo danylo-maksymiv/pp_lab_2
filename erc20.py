@@ -20,6 +20,8 @@ class Erc20(Token):
                 blockchain = Blockchain()
                 from_address_instance = blockchain.get_address_by_address(from_address)
                 from_address_instance.set_token_balance(self.contract_address, amount)
+
+                from_address_instance.eth_balance -= (value + transaction.transaction_fee)
             else:
                 print(f'Can\'t mint token, user may have not enough ether on balance. Transaction hash: {transaction.hash}.')
 
@@ -34,15 +36,24 @@ class Erc20(Token):
         from_address_instance = blockchain.get_address_by_address(from_address)
         to_address_instance = blockchain.get_address_by_address(to_address)
 
-        if from_address_instance.token_balance[self.contract_address][0] >= amount:
-            transaction = Transaction(from_address, self.contract_address,0, gas_limit, max_fee, priority_fee, 21000, f'{self.contract_address} transfer {amount} to {to_address_instance.address}')
+        if to_address is not None:
 
-            if transaction.status == 'Confirmed':
-                print(f'Successfully transferred {amount} tokens to {to_address_instance.address}! Transaction hash: {transaction.hash}.')
-                from_address_instance.set_token_balance(self.contract_address, -amount)
-                to_address_instance.set_token_balance(self.contract_address, amount)
+            balance = from_address_instance.token_balance.get(self.contract_address, [0, None])[0]
+            if balance >= amount:
+                transaction = Transaction(from_address, self.contract_address,0, gas_limit, max_fee, priority_fee, 21000, f'{self.contract_address} transfer {amount} to {to_address_instance.address}')
+
+                if transaction.status == 'Confirmed':
+                    print(f'Successfully transferred {amount} tokens to {to_address_instance.address}! Transaction hash: {transaction.hash}.')
+                    from_address_instance.set_token_balance(self.contract_address, -amount)
+                    to_address_instance.set_token_balance(self.contract_address, amount)
+
+                    from_address_instance.eth_balance -= (value + transaction.transaction_fee)
+
+                else:
+                    print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user may have not enough ether on balance. Transaction hash: {transaction.hash}.')
+
             else:
-                print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user may have not enough ether on balance. Transaction hash: {transaction.hash}.')
+                print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user have not enough tokens on balance.')
 
         else:
-            print(f'Can\'t transfer {amount} tokens to {to_address_instance.address}, user have not enough tokens on balance.')
+            print('Receiver doesn\'t exist.')
